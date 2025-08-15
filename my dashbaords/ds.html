@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prince Learning Hub - Data Analytics Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google Fonts: Orbitron for a futuristic feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- Custom Styles for Cyberpunk Theme --- */
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-magenta: #ff00ff;
+            --bg-dark-primary: #010104; /* Even Darker background */
+            --bg-dark-secondary: #1a1a2e;
+            --glass-bg: rgba(26, 26, 46, 0.5);
+            --glass-border: rgba(0, 255, 255, 0.2);
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--bg-dark-primary);
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        /* Animated Gradient Background */
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 25% 25%, var(--neon-cyan), transparent 40%),
+                        radial-gradient(circle at 75% 75%, var(--neon-magenta), transparent 40%),
+                        var(--bg-dark-primary);
+            background-size: 400% 400%;
+            animation: gradient-flow 20s ease infinite;
+        }
+        
+        @keyframes gradient-flow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glassmorphism Effect for Widgets */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 0 25px var(--neon-cyan), 0 0 10px var(--neon-magenta);
+            border-color: rgba(0, 255, 255, 0.5);
+        }
+        
+        /* Specific style for refresh button to avoid transform */
+        #refresh-btn:hover {
+            transform: none;
+            background-color: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00c0c0;
+        }
+
+        /* Entry Animation for Widgets */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        /* Loading Spinner */
+        #loader {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: var(--neon-cyan);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="background-animation"></div>
+
+    <main class="p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl md:text-5xl font-bold tracking-widest py-4 text-white">
+                Prince Learning Hub <br>
+                <span class="text-2xl md:text-3xl text-gray-400 font-normal">Data Analytics</span>
+            </h1>
+            <button id="refresh-btn" class="absolute top-0 right-0 p-3 rounded-lg glass-card flex items-center space-x-2 transition-all duration-300" title="Refresh Data">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M3 21a9 9 0 0 1 .46-3.22"/><path d="M20.54 15.78A9 9 0 0 1 12 21a9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 11v5h5"/></svg>
+                <span class="hidden md:inline">Refresh</span>
+            </button>
+        </header>
+
+        <!-- Loading Indicator -->
+        <div id="loading-indicator" class="flex justify-center items-center h-64">
+            <div id="loader"></div>
+        </div>
+        
+        <!-- Dashboard Grid -->
+        <div id="dashboard-grid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <!-- KPI Card: Total Revenue -->
+            <div class="glass-card rounded-lg p-6 fade-in lg:col-span-1" style="animation-delay: 0.1s;">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-300">Total Revenue</h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <p id="total-revenue" class="text-4xl font-bold mt-4 text-cyan-400">₹0</p>
+                <p class="text-sm text-gray-400 mt-2">All-time paid enrollments</p>
+            </div>
+
+            <!-- KPI Card: Total Students -->
+            <div class="glass-card rounded-lg p-6 fade-in lg:col-span-1" style="animation-delay: 0.2s;">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-300">Total Students</h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <p id="total-students" class="text-4xl font-bold mt-4 text-cyan-400">0</p>
+                <p class="text-sm text-gray-400 mt-2">Total enrollments</p>
+            </div>
+
+            <!-- KPI Card: Paid Students -->
+            <div class="glass-card rounded-lg p-6 fade-in lg:col-span-1" style="animation-delay: 0.3s;">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-300">Paid Students</h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <p id="paid-students" class="text-4xl font-bold mt-4 text-cyan-400">0</p>
+                <p class="text-sm text-gray-400 mt-2">Completed payments</p>
+            </div>
+
+            <!-- KPI Card: Conversion Rate -->
+            <div class="glass-card rounded-lg p-6 fade-in lg:col-span-1" style="animation-delay: 0.4s;">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-300">Conversion Rate</h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400"><path d="m21.21 15.89-1.21-1.22a3 3 0 0 0-4.24 0L12 18.42l-3.76-3.75a3 3 0 0 0-4.24 0l-1.21 1.22"/><path d="M16 7.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>
+                </div>
+                <p id="conversion-rate" class="text-4xl font-bold mt-4 text-cyan-400">0%</p>
+                <p class="text-sm text-gray-400 mt-2">Enrollment to paid</p>
+            </div>
+            
+            <!-- Chart: Revenue Trends -->
+            <div class="glass-card rounded-lg p-6 md:col-span-2 lg:col-span-3 fade-in h-96" style="animation-delay: 0.6s;">
+                <h3 class="text-lg font-semibold text-gray-300 mb-4">Revenue Trends (Monthly)</h3>
+                <canvas id="revenue-trends-chart"></canvas>
+            </div>
+
+            <!-- Available Courses Card -->
+            <div class="glass-card rounded-lg p-6 fade-in lg:col-span-1 h-96" style="animation-delay: 0.5s;">
+                <h3 class="text-lg font-semibold text-gray-300 mb-4">Available Courses</h3>
+                <ul id="course-list" class="space-y-2 text-sm text-gray-300 overflow-y-auto h-full pr-2">
+                    <!-- Course names will be injected here -->
+                </ul>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURATION ---
+            const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/17tvaydDAdawX2wOBAA6xL5t1wR0c1IH8JcTmK_-XUWA/export?format=csv';
+            
+            // --- UI ELEMENTS ---
+            const loader = document.getElementById('loading-indicator');
+            const dashboardGrid = document.getElementById('dashboard-grid');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const totalRevenueEl = document.getElementById('total-revenue');
+            const totalStudentsEl = document.getElementById('total-students');
+            const paidStudentsEl = document.getElementById('paid-students');
+            const conversionRateEl = document.getElementById('conversion-rate');
+            const courseListEl = document.getElementById('course-list');
+
+            // --- CHART CONTEXTS ---
+            const revenueTrendsCtx = document.getElementById('revenue-trends-chart').getContext('2d');
+            let revenueTrendsChart;
+
+            /**
+             * Fetches and parses CSV data from the Google Sheet.
+             * @returns {Promise<Array<Object>>} A promise that resolves to an array of data objects.
+             */
+            async function fetchData() {
+                try {
+                    // Use a cache-busting query parameter to ensure fresh data
+                    const response = await fetch(`${GOOGLE_SHEET_URL}&t=${new Date().getTime()}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const csvText = await response.text();
+                    return parseCSV(csvText);
+                } catch (error) {
+                    console.error("Failed to fetch or parse data:", error);
+                    loader.innerHTML = `<p class="text-red-500 text-sm">Error loading data. Please check your internet connection and ensure the Google Sheet is public. <br>Details: ${error.message}</p>`;
+                    return [];
+                }
+            }
+
+            /**
+             * Parses a CSV string into an array of objects.
+             * @param {string} csvText - The CSV string to parse.
+             * @returns {Array<Object>} The parsed data.
+             */
+            function parseCSV(csvText) {
+                const lines = csvText.trim().split('\n');
+                const headers = lines[0].split(',').map(h => h.trim().replace(/\s+/g, ''));
+                
+                const data = lines.slice(1).map(line => {
+                    const values = line.split(',');
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = values[index] ? values[index].trim() : '';
+                    });
+                    return obj;
+                });
+                return data;
+            }
+
+            /**
+             * Processes the raw data to calculate KPIs and chart data.
+             * @param {Array<Object>} data - The array of data from the sheet.
+             */
+            function processData(data) {
+                let totalRevenue = 0;
+                let paidStudentsCount = 0;
+                const totalStudentsCount = data.length;
+                const courseNames = new Set();
+
+                data.forEach(row => {
+                    const isPaid = row['Paid/Notpaid'] && row['Paid/Notpaid'].toLowerCase() === 'paid';
+                    const price = parseFloat(row.Price) || 0;
+                    const courseName = row.CourseName || 'Unknown Course';
+
+                    courseNames.add(courseName);
+
+                    if (isPaid) {
+                        totalRevenue += price;
+                        paidStudentsCount++;
+                    }
+                });
+
+                const conversionRate = totalStudentsCount > 0 ? (paidStudentsCount / totalStudentsCount) * 100 : 0;
+
+                updateKPIs({ totalRevenue, totalStudentsCount, paidStudentsCount, conversionRate });
+                updateCourseList(Array.from(courseNames));
+                updateRevenueTrendsChart();
+            }
+            
+            /**
+             * Updates the KPI cards in the UI.
+             * @param {Object} kpis - An object containing the calculated KPIs.
+             */
+            function updateKPIs(kpis) {
+                totalRevenueEl.textContent = `₹${kpis.totalRevenue.toLocaleString('en-IN')}`;
+                totalStudentsEl.textContent = kpis.totalStudentsCount;
+                paidStudentsEl.textContent = kpis.paidStudentsCount;
+                conversionRateEl.textContent = `${kpis.conversionRate.toFixed(1)}%`;
+            }
+
+            /**
+             * Updates the available courses list in the UI.
+             * @param {Array<string>} courses - An array of unique course names.
+             */
+            function updateCourseList(courses) {
+                courseListEl.innerHTML = ''; // Clear previous list
+                courses.forEach(course => {
+                    const li = document.createElement('li');
+                    li.textContent = course;
+                    li.classList.add('truncate');
+                    courseListEl.appendChild(li);
+                });
+            }
+            
+            /**
+             * Creates or updates the Revenue Trends line chart with mock data.
+             */
+            function updateRevenueTrendsChart() {
+                const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+                const data = [12000, 19000, 15000, 25000, 22000, 30000];
+
+                const chartConfig = {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Monthly Revenue',
+                            data: data,
+                            fill: true,
+                            backgroundColor: (context) => {
+                                const ctx = context.chart.ctx;
+                                const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                                gradient.addColorStop(0, 'rgba(255, 0, 255, 0.5)');
+                                gradient.addColorStop(1, 'rgba(255, 0, 255, 0)');
+                                return gradient;
+                            },
+                            borderColor: 'rgba(255, 0, 255, 1)',
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: 'rgba(255, 0, 255, 1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: chartOptions('y', 'Revenue (₹)')
+                };
+
+                if (revenueTrendsChart) {
+                    revenueTrendsChart.data = chartConfig.data;
+                    revenueTrendsChart.update();
+                } else {
+                    revenueTrendsChart = new Chart(revenueTrendsCtx, chartConfig);
+                }
+            }
+            
+            /**
+             * Generates common chart options for a consistent look.
+             * @param {string} axis - The primary axis ('x' or 'y').
+             * @param {string} title - The title for the primary axis.
+             * @returns {Object} Chart.js options object.
+             */
+            function chartOptions(axis, title) {
+                return {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        [axis]: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#a0a0a0', font: { family: "'Orbitron', sans-serif" } },
+                            title: { display: true, text: title, color: '#c0c0c0' }
+                        },
+                        [axis === 'x' ? 'y' : 'x']: {
+                             grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#a0a0a0', font: { family: "'Orbitron', sans-serif" } }
+                        }
+                    }
+                };
+            }
+
+            /**
+             * Main function to initialize or refresh the dashboard.
+             */
+            async function initializeDashboard() {
+                // Destroy old charts before creating new ones to prevent issues
+                if (revenueTrendsChart) {
+                    revenueTrendsChart.destroy();
+                    revenueTrendsChart = null;
+                }
+                
+                const data = await fetchData();
+                if (data && data.length > 0) {
+                    processData(data);
+                    loader.style.display = 'none';
+                    dashboardGrid.classList.remove('hidden');
+                }
+            }
+
+            // --- EVENT LISTENERS ---
+            refreshBtn.addEventListener('click', () => {
+                loader.style.display = 'flex';
+                dashboardGrid.classList.add('hidden');
+                // Use a small timeout for better visual feedback
+                setTimeout(initializeDashboard, 500);
+            });
+
+            // --- START THE APPLICATION ---
+            initializeDashboard();
+        });
+    </script>
+</body>
+</html>
